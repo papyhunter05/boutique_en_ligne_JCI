@@ -8,6 +8,8 @@ use App\Http\Controllers\Api\Admin\AdminCategorieController;
 use App\Http\Controllers\Api\Admin\AdminProduitController;
 use App\Http\Controllers\Api\Admin\AdminVarianteProduitController;
 use App\Http\Controllers\Api\Admin\AdminMouvementStockController;
+use App\Http\Controllers\Api\Client\PanierController;
+
 // Routes publiques
 Route::prefix('auth')->group(function () {
 
@@ -29,7 +31,12 @@ Route::middleware('auth:sanctum')->group(function () {
     // Details d'un produit
     Route::get('/produits/{id}', [ProduitController::class, 'show']);
 
-
+    // Gestion du panier
+    Route::get('/panier', [PanierController::class, 'index']);
+    Route::post('/panier/articles', [PanierController::class, 'store']);
+    Route::put('/panier/articles/{idArticle}', [PanierController::class, 'update']);
+    Route::delete('/panier/articles/{idArticle}', [PanierController::class, 'destroy']);
+    Route::delete('/panier', [PanierController::class, 'clear']);
 });
 
 // Routes réservées à l'administrateur
