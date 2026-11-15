@@ -48,3 +48,10 @@ export function applyServerErrors(error, setError, knownFields) {
     })
   }
 }
+
+// L'issue est incertaine : le serveur a peut-être traité la demande
+// malgré l'erreur (pas de réponse, ou erreur serveur).
+export function isUncertainError(error) {
+  if (!error?.response) return true
+  return error.response.status >= 500
+}

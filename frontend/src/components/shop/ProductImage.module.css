@@ -1,0 +1,23 @@
+.frame {
+  position: relative;
+  display: grid;
+  place-items: center;
+  aspect-ratio: var(--image-ratio, 1);
+  overflow: hidden;
+  background: var(--color-image-bg);
+  border-radius: var(--radius-md);
+}
+
+/* Placement absolu : l'image remplit le cadre sans dépendre d'un pourcentage de hauteur */
+.image {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;   /* image entière visible. Passer à « cover » pour remplir le cadre en rognant */
+}
+
+.placeholder {
+  font-size: var(--text-xs);
+  color: var(--color-slate-75);
+}

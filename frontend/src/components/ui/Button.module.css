@@ -41,3 +41,9 @@
 @keyframes spin {
   to { transform: rotate(360deg); }
 }
+
+/* Écrans tactiles : zones de toucher plus grandes */
+@media (pointer: coarse) {
+  .sm { min-height: 36px; }
+  .md { min-height: 44px; }
+}

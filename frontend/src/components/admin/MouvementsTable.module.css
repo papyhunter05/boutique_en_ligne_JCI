@@ -1,0 +1,8 @@
+.product { display: grid; }
+
+.link { font-size: var(--text-xs); color: var(--color-blue); }
+.link:hover { text-decoration: underline; }
+
+.plus  { color: var(--color-green); }
+.minus { color: var(--color-danger); }
+.date { white-space: nowrap; }

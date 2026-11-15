@@ -11,6 +11,8 @@ import '@fontsource/inter/700.css'
 import './styles/tokens.css'
 import './styles/global.css'
 
+import ErrorBoundary from './components/common/ErrorBoundary.jsx'
+
 import AuthModalProvider from './context/AuthModalProvider.jsx'
 import NotificationProvider from './context/NotificationProvider.jsx'
 import AuthProvider from './context/AuthProvider.jsx'
@@ -32,16 +34,18 @@ const queryClient = new QueryClient({
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
-    <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
-        <NotificationProvider>
-          <AuthProvider>
-            <AuthModalProvider>
-              <App />
-            </AuthModalProvider>
-          </AuthProvider>
-        </NotificationProvider>
-      </BrowserRouter>
-    </QueryClientProvider>
+    <ErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <BrowserRouter>
+          <NotificationProvider>
+            <AuthProvider>
+              <AuthModalProvider>
+                <App />
+              </AuthModalProvider>
+            </AuthProvider>
+          </NotificationProvider>
+        </BrowserRouter>
+      </QueryClientProvider>
+    </ErrorBoundary>
   </StrictMode>,
 )

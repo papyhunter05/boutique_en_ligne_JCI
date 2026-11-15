@@ -1,5 +1,6 @@
 import react from '@vitejs/plugin-react'
 import { defineConfig } from 'vite'
+import http from 'node:http'
 
 // https://vite.dev/config/
 export default defineConfig({

@@ -5,17 +5,21 @@ namespace App\Http\Controllers\Api\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Produit;
 use App\Models\VarianteProduit;
+use App\Models\MouvementStock;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\DB;
+
 
 class AdminVarianteProduitController extends Controller
 {
     /**
      * Ajouter une variante à un produit.
      */
+    
     public function store(Request $request, int $idProduit): JsonResponse
     {
         // 1. Vérifier que le produit existe et qu'il est actif.
@@ -61,21 +65,56 @@ class AdminVarianteProduitController extends Controller
             ],
         ]);
 
-        // 3. Enregistrer l'image dans storage/app/public/variantes.
+        // 3. Enregistrer l'image.
         $cheminImage = $request->file('image')
             ->store('variantes', 'public');
 
-        // 4. Créer la variante.
-        $variante = VarianteProduit::create([
-            'id_produit' => $produit->id_produit,
-            'modele' => $validated['modele'] ?? null,
-            'taille' => $validated['taille'] ?? null,
-            'sku' => $validated['sku'],
-            'image' => $cheminImage,
-            'quantite_stock' => $validated['quantite_stock'],
-            'quantite_reservee' => 0,
-            'statut' => 'ACTIF',
-        ]);
+        try {
+
+            // 4. Créer la variante et son mouvement dans une transaction.
+            $variante = DB::transaction(function () use (
+                $produit,
+                $validated,
+                $cheminImage,
+                $request
+            ) {
+
+                // Créer la variante.
+                $variante = VarianteProduit::create([
+                    'id_produit' => $produit->id_produit,
+                    'modele' => $validated['modele'] ?? null,
+                    'taille' => $validated['taille'] ?? null,
+                    'sku' => $validated['sku'],
+                    'image' => $cheminImage,
+                    'quantite_stock' => $validated['quantite_stock'],
+                    'quantite_reservee' => 0,
+                    'statut' => 'ACTIF',
+                ]);
+
+                // Enregistrer le stock initial dans l'historique.
+                // Aucun mouvement n'est créé si le stock initial est égal à zéro.
+                if ($validated['quantite_stock'] > 0) {
+
+                    MouvementStock::create([
+                        'id_variante' => $variante->id_variante,
+                        'id_utilisateur' => $request->user()->id_utilisateur,
+                        'id_commande' => null,
+                        'type_mouvement' => 'ENTREE',
+                        'quantite' => $validated['quantite_stock'],
+                        'motif' => 'Stock initial à la création de la variante',
+                    ]);
+                }
+
+                return $variante;
+            });
+
+        } catch (\Throwable $e) {
+
+            // Supprimer l'image si la transaction échoue.
+            Storage::disk('public')->delete($cheminImage);
+
+            throw $e;
+        }
 
         // 5. Retourner le résultat.
         return response()->json([
@@ -88,13 +127,14 @@ class AdminVarianteProduitController extends Controller
                 'taille' => $variante->taille,
                 'sku' => $variante->sku,
                 'image' => $variante->image,
-                'image_url' => Storage::url($variante->image),
+                'image_url' => Storage::disk('public')->url($variante->image),
                 'quantite_stock' => $variante->quantite_stock,
                 'quantite_reservee' => $variante->quantite_reservee,
                 'statut' => $variante->statut,
             ],
         ], 201);
     }
+
 
 
     /**
@@ -133,7 +173,7 @@ class AdminVarianteProduitController extends Controller
                 );
 
                 $variante->image_url = $variante->image
-                    ? \Illuminate\Support\Facades\Storage::url($variante->image)
+                    ? Storage::disk('public')->url($variante->image)
                     : null;
 
                 return $variante;
@@ -153,6 +193,7 @@ class AdminVarianteProduitController extends Controller
         ]);
     }
 
+    
     public function update(Request $request, int $idProduit, int $idVariante): JsonResponse
     {
         $produit = Produit::find($idProduit);
@@ -175,9 +216,35 @@ class AdminVarianteProduitController extends Controller
             ], 404);
         }
 
+        // Interdire toute modification directe du stock.
+        if (array_key_exists('quantite_stock', $request->all())
+            || array_key_exists('quantite_reservee', $request->all())) {
+
+            return response()->json([
+                'success' => false,
+                'message' => 'La modification du stock doit obligatoirement passer par le module de mouvements de stock.',
+                'errors' => [
+                    'stock' => [
+                        'Les champs quantite_stock et quantite_reservee ne sont pas modifiables depuis cette route.',
+                    ],
+                ],
+            ], 422);
+        }
+
+        // Validation des autres champs modifiables.
         $validated = $request->validate([
-            'modele' => ['sometimes', 'nullable', 'string', 'max:100'],
-            'taille' => ['sometimes', 'nullable', 'string', 'max:50'],
+            'modele' => [
+                'sometimes',
+                'nullable',
+                'string',
+                'max:100',
+            ],
+            'taille' => [
+                'sometimes',
+                'nullable',
+                'string',
+                'max:50',
+            ],
             'sku' => [
                 'sometimes',
                 'required',
@@ -186,7 +253,6 @@ class AdminVarianteProduitController extends Controller
                 Rule::unique('variante_produit', 'sku')
                     ->ignore($variante->id_variante, 'id_variante'),
             ],
-            'quantite_stock' => ['sometimes', 'required', 'integer', 'min:0'],
             'image' => [
                 'sometimes',
                 'required',
@@ -196,19 +262,9 @@ class AdminVarianteProduitController extends Controller
             ],
         ]);
 
-        // Empêcher de définir un stock inférieur aux quantités déjà réservées.
-        if (
-            isset($validated['quantite_stock']) &&
-            $validated['quantite_stock'] < $variante->quantite_reservee
-        ) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Le stock total ne peut pas être inférieur au stock réservé.',
-            ], 422);
-        }
-
         // Remplacer l'image si une nouvelle image est envoyée.
         if ($request->hasFile('image')) {
+
             $nouveauChemin = $request->file('image')
                 ->store('variantes', 'public');
 
@@ -224,9 +280,10 @@ class AdminVarianteProduitController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Variante modifiée avec succès.',
-            'data' => $variante,
+            'data' => $variante->fresh(),
         ]);
     }
+
 
 
     /**

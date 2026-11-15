@@ -1,0 +1,45 @@
+.carousel {
+  --image-ratio: 1;
+
+  display: grid;
+  gap: var(--space-3);
+  width: 100%;
+  max-width: 540px;       /* largeur maximale du carrousel : à ajuster */
+  justify-self: center;   /* centré horizontalement dans sa colonne */
+  padding: var(--space-3);
+  background: var(--color-white);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+}
+
+.frame { position: relative; }
+
+.picture {
+  display: block;
+  width: 100%;
+  padding: 0;
+  background: none;
+  border: 0;
+}
+button.picture { cursor: pointer; }
+
+.arrow {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  color: var(--color-white);
+  background: var(--color-slate);
+  border: 0;
+  border-radius: 50%;
+}
+.arrow:hover { opacity: 0.85; }
+.left  { left: var(--space-2); }
+.right { right: var(--space-2); }
+
+.caption { text-align: center; }
+.name { font-size: var(--text-sm); font-weight: var(--weight-semibold); }
+.description { font-size: var(--text-xs); color: var(--color-text-muted); }

@@ -7,6 +7,8 @@ use App\Models\Produit;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
+use App\Models\VarianteProduit;
+use Illuminate\Support\Facades\Storage;
 
 class AdminProduitController extends Controller
 {
@@ -18,6 +20,14 @@ class AdminProduitController extends Controller
         $produits = Produit::query()
             ->with('categorie:id_categorie,nom_categorie')
             ->withCount('variantes')
+            ->addSelect([
+                'image_principale' => VarianteProduit::query()
+                    ->select('image')
+                    ->whereColumn('variante_produit.id_produit', 'produit.id_produit')
+                    ->whereNotNull('image')
+                    ->orderBy('id_variante')
+                    ->limit(1),
+            ])
             ->orderByDesc('date_creation')
             ->paginate(15, [
                 'id_produit',
@@ -28,6 +38,14 @@ class AdminProduitController extends Controller
                 'statut',
                 'date_creation',
             ]);
+
+        $produits->getCollection()->transform(function ($produit) {
+            $produit->image_url = $produit->image_principale
+                ? Storage::disk('public')->url($produit->image_principale)
+                : null;
+
+            return $produit;
+        });
 
         return response()->json([
             'success' => true,

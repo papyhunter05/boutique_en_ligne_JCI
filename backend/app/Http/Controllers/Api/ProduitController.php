@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Produit;
 use App\Models\VarianteProduit;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\Storage;
 
 class ProduitController extends Controller
 {
@@ -41,6 +42,8 @@ class ProduitController extends Controller
                     ->limit(1)
             ])
 
+            
+
             // Trier les produits du plus récent au plus ancien
             ->orderByDesc('date_creation')
 
@@ -53,6 +56,14 @@ class ProduitController extends Controller
                 'prix',
                 'statut',
             ]);
+
+            $produits->getCollection()->transform(function ($produit) {
+                $produit->image_url = $produit->image_principale
+                    ? asset('storage/' . $produit->image_principale)
+                    : null;
+
+                return $produit;
+            });
 
         return response()->json([
             'success' => true,
@@ -108,6 +119,9 @@ class ProduitController extends Controller
                 'modele' => $variante->modele,
                 'taille' => $variante->taille,
                 'image' => $variante->image,
+                'image_url' => $variante->image
+                    ? Storage::disk('public')->url($variante->image)
+                    : null,
                 'stock_disponible' => max(
                     0,
                     $variante->quantite_stock - $variante->quantite_reservee

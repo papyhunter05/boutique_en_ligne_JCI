@@ -1,0 +1,45 @@
+.card {
+  position: relative;
+  display: grid;
+  align-content: start;
+  gap: var(--space-2);
+  min-height: 120px;
+  padding: var(--space-4);
+  overflow: hidden;
+  background: var(--color-white);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+}
+
+.label { font-size: var(--text-sm); }
+
+.value {
+  margin-top: var(--space-3);
+  font-size: var(--text-2xl);
+  font-weight: var(--weight-bold);
+  color: var(--color-slate);
+}
+
+.hint { font-size: var(--text-xs); color: var(--color-text-muted); }
+
+/* Grande icône rognée dans le coin, comme sur la maquette */
+.decoration {
+  position: absolute;
+  top: -14px;
+  right: -12px;
+  opacity: 0.9;
+  pointer-events: none;
+}
+
+.skeleton {
+  width: 90px;
+  height: 36px;
+  margin-top: var(--space-3);
+  background: var(--color-page-bg);
+  border-radius: var(--radius-sm);
+  animation: pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  50% { opacity: 0.5; }
+}

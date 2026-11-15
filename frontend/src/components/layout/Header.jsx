@@ -13,7 +13,7 @@ export default function Header() {
   const headerRef = useRef(null)
   useScrollProgress(headerRef)
 
-  const { isLoading, isAuthenticated, isAdmin } = useAuth()
+  const { isLoading, isAuthenticated, isAdmin, sessionError, retrySession } = useAuth()
   const { openLogin } = useAuthModal()
   const [logoutOpen, setLogoutOpen] = useState(false)
 
@@ -53,6 +53,10 @@ export default function Header() {
                     Déconnexion
                   </Button>
                 </>
+              ) : sessionError ? (
+                <Button variant="soft" size="sm" onClick={retrySession}>
+                  Session non vérifiée · Réessayer
+                </Button>
               ) : (
                 <Button variant="slate" size="sm" onClick={openLogin}>
                   Connexion

@@ -1,0 +1,58 @@
+.form { display: grid; gap: var(--space-4); }
+
+/* La classe ci-dessus définit display: grid, qui annulerait l'attribut hidden */
+.form[hidden] { display: none; }
+
+.target {
+  display: grid;
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--text-sm);
+  background: var(--color-admin-bg);
+  border-radius: var(--radius-sm);
+}
+.target span { font-size: var(--text-xs); color: var(--color-slate-75); }
+
+.stockInfo { font-size: var(--text-xs); color: var(--color-slate); }
+
+.formError {
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--text-xs);
+  color: var(--color-danger);
+  background: rgba(185, 28, 28, 0.08);
+  border-radius: var(--radius-sm);
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--space-2);
+}
+
+.info {
+  padding: var(--space-5) 0;
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+  text-align: center;
+}
+
+.recap { display: grid; gap: var(--space-4); }
+.recapTitle { font-size: var(--text-sm); font-weight: var(--weight-semibold); }
+
+.summary {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: var(--space-2) var(--space-4);
+  margin: 0;
+  font-size: var(--text-sm);
+}
+.summary dt { color: var(--color-text-muted); }
+.summary dd { margin: 0; font-weight: var(--weight-medium); overflow-wrap: anywhere; }
+
+.warning {
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--text-xs);
+  color: var(--color-slate);
+  background: var(--color-amber-40);
+  border-radius: var(--radius-sm);
+}

@@ -42,6 +42,7 @@
      ========================================================== */
   --color-blue-banner: #1b3f8b;        /* bandeau boutique : absent de ta liste, probablement une image */
    --color-navy-08: rgba(19, 13, 52, 0.08); /* bouton « Se connecter » : teal ou vert ? */
+     --color-image-bg: #e5e7eb;           /* fond gris derrière les photos produit (estimé) */
 
   /* Alias de compatibilité (utilisé dans global.css) */
   --color-blue-accent: var(--color-blue);
@@ -68,6 +69,7 @@
      TYPOGRAPHIE
      ========================================================== */
   --font-sans: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-admin: "Poppins", var(--font-sans);
 
   --text-xs: 0.75rem;
   --text-sm: 0.875rem;

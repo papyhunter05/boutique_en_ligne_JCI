@@ -1,0 +1,68 @@
+.page { display: grid; }
+
+.card {
+  display: grid;
+  gap: var(--space-4);
+  padding: var(--space-5);
+  background: var(--color-white);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+}
+
+.header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.title { font-size: var(--text-lg); font-weight: var(--weight-medium); }
+.subtitle { font-size: var(--text-xs); color: var(--color-text-muted); }
+
+.product {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+@media (min-width: 720px) {
+  .product { min-width: 240px; }
+}
+
+.thumb { flex: none; width: 48px; }
+
+.productText { display: grid; min-width: 0; }
+
+.name { font-weight: var(--weight-medium); }
+
+.description {
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  max-width: 280px;
+  overflow: hidden;
+  font-size: var(--text-xs);
+  color: var(--color-slate-75);
+}
+
+.actions { display: inline-flex; gap: var(--space-2); }
+
+.fetching { opacity: 0.6; transition: opacity 0.15s; }
+
+.skeletons { display: grid; gap: var(--space-2); }
+
+.skeleton {
+  height: 56px;
+  background: var(--color-page-bg);
+  border-radius: var(--radius-md);
+  animation: pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  50% { opacity: 0.5; }
+}
+
+@media (max-width: 599px) {
+  .card { padding: var(--space-3); }
+}

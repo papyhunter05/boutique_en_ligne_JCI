@@ -177,20 +177,22 @@ class AdminMouvementStockController extends Controller
                 return [
                     'id_mouvement' => $mouvement->id_mouvement,
 
-                    'produit' => $mouvement->variante->produit->nom_produit,
+                    'date_mouvement' => $mouvement->date_mouvement,
 
-                    'variante' => [
+                    'produit' => $mouvement->variante?->produit?->nom_produit,
+
+                    'variante' => $mouvement->variante ? [
                         'id_variante' => $mouvement->variante->id_variante,
                         'modele' => $mouvement->variante->modele,
                         'taille' => $mouvement->variante->taille,
                         'sku' => $mouvement->variante->sku,
-                    ],
+                    ] : null,
 
-                    'administrateur' => [
+                    'administrateur' => $mouvement->utilisateur ? [
                         'id_utilisateur' => $mouvement->utilisateur->id_utilisateur,
                         'nom' => $mouvement->utilisateur->nom,
                         'prenom' => $mouvement->utilisateur->prenom,
-                    ],
+                    ] : null,
 
                     'id_commande' => $mouvement->id_commande,
                     'type_mouvement' => $mouvement->type_mouvement,
