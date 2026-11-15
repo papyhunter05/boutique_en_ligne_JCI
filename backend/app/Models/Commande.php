@@ -19,11 +19,13 @@ class Commande extends Model
         'id_utilisateur',
         'id_panier',
         'reference',
+        'mode_reception',
+        'lieu_retrait',
         'date_commande',
         'montant_articles',
         'frais_livraison',
         'montant_total',
-        'statut',
+        'statut',     
         'date_expiration_paiement',
     ];
 
