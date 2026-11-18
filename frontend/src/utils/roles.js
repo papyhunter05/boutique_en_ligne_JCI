@@ -25,3 +25,7 @@ export const ROLE_TONES = {
   ADMIN: 'info',
   SUPER_ADMIN: 'warning',
 }
+
+export function isClientRole(role) {
+  return role === ROLES.CLIENT
+}

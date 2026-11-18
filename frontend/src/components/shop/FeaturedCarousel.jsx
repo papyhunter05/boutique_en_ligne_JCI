@@ -16,7 +16,7 @@ export default function FeaturedCarousel({ products, onSelect }) {
 
   const Picture = onSelect ? 'button' : 'div'
   const pictureProps = onSelect
-    ? { type: 'button', onClick: onSelect, 'aria-label': `Voir ${current.nom_produit}` }
+    ? { type: 'button', onClick: () => onSelect(current.id_produit), 'aria-label': `Voir ${current.nom_produit}` }
     : {}
 
   return (

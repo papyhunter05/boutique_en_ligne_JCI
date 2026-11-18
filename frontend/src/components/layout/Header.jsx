@@ -6,16 +6,22 @@ import { HomeIcon, CartIcon } from '../ui/icons'
 import LogoutConfirmDialog from '../auth/LogoutConfirmDialog'
 import { useAuth } from '../../hooks/useAuth'
 import { useAuthModal } from '../../hooks/useAuthModal'
+import { usePanier } from '../../hooks/usePanier'
 import { useScrollProgress } from '../../hooks/useScrollProgress'
+import { pluralize } from '../../utils/format'
 import styles from './Header.module.css'
 
 export default function Header() {
   const headerRef = useRef(null)
   useScrollProgress(headerRef)
 
-  const { isLoading, isAuthenticated, isAdmin, sessionError, retrySession } = useAuth()
+  const { isLoading, isAuthenticated, isAdmin, isClient, sessionError, retrySession } = useAuth()
   const { openLogin } = useAuthModal()
   const [logoutOpen, setLogoutOpen] = useState(false)
+
+  // Nombre de lignes du panier (comme « nombre_articles » du backend). Rien si indisponible.
+  const { data: panier } = usePanier()
+  const cartCount = panier?.nombre_articles ?? 0
 
   return (
     <>
@@ -39,16 +45,19 @@ export default function Header() {
                       Administration
                     </Button>
                   )}
-                  {/* Le panier sera branché dans un module ultérieur */}
-                  <Button
-                    variant="slate"
-                    size="sm"
-                    leftIcon={<CartIcon size={16} />}
-                    disabled
-                    title="Bientôt disponible"
-                  >
-                    Panier
-                  </Button>
+                  {isClient && (
+                    <Button
+                      as={Link}
+                      to="/panier"
+                      variant="slate"
+                      size="sm"
+                      leftIcon={<CartIcon size={16} />}
+                      aria-label={cartCount > 0 ? `Panier, ${pluralize(cartCount, 'article')}` : 'Panier'}
+                    >
+                      Panier
+                      {cartCount > 0 && <span className={styles.cartCount}> {cartCount}</span>}
+                    </Button>
+                  )}
                   <Button variant="soft" size="sm" onClick={() => setLogoutOpen(true)}>
                     Déconnexion
                   </Button>

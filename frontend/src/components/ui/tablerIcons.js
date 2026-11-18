@@ -24,4 +24,7 @@ export {
   IconTruckFilled,
   IconMenu2,
   IconX,
+  IconTrash,
+  IconArrowLeft,
+  IconArrowRight,
 } from '@tabler/icons-react'

@@ -55,3 +55,9 @@ export function isUncertainError(error) {
   if (!error?.response) return true
   return error.response.status >= 500
 }
+
+// Premier message de validation (422) renvoyé par Laravel, sinon un message générique
+export function getFirstError(error, fallback) {
+  const first = Object.values(getFieldErrors(error))[0]
+  return first ?? getErrorMessage(error, fallback)
+}

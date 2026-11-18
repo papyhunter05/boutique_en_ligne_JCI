@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import Button from '../ui/Button'
 import { ArrowRightIcon } from '../ui/icons'
 import StateMessage from '../common/StateMessage'
@@ -17,23 +18,22 @@ export default function ProductsSection() {
   const sectionRef = useRef(null)
   const [page, setPage] = useState(1)
 
+  const navigate = useNavigate()
   const { data, isPending, isError, isFetching, refetch } = useProduits(page)
   const onSelect = useProductSelect()
-  const { isAuthenticated } = useAuth()
+  const { isAuthenticated, isClient } = useAuth()
   const { openLogin } = useAuthModal()
   const notify = useNotification()
 
   function handleOrderClick() {
     if (!isAuthenticated) {
-      openLogin()
-      return
+      // Après la connexion, on ouvre directement le panier
+      openLogin({ onSuccess: () => navigate('/panier') })
+    } else if (isClient) {
+      navigate('/panier')
+    } else {
+      notify.info('Les comptes administrateurs ne peuvent pas passer commande.')
     }
-    // Aucune route de commande pour l'instant
-    notify.info('La commande sera disponible prochainement.')
-  }
-
-  function handleAddToCart() {
-    notify.info('Le panier sera disponible prochainement.')
   }
 
   function handlePageChange(newPage) {
@@ -79,11 +79,7 @@ export default function ProductsSection() {
         <ul className={styles.grid} aria-busy={isFetching}>
           {data.items.map((product) => (
             <li key={product.id_produit} className={isFetching ? styles.fetching : undefined}>
-              <ProductCard
-                product={product}
-                onSelect={onSelect}
-                onAddToCart={isAuthenticated ? handleAddToCart : undefined}
-              />
+              <ProductCard product={product} onSelect={onSelect} showAddToCart={isClient} />
             </li>
           ))}
         </ul>

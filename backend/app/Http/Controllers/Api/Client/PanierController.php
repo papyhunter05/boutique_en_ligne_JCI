@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\DB;
 use App\Models\PanierArticle;
 use App\Models\VarianteProduit;
 use Illuminate\Validation\ValidationException;
+use Illuminate\Support\Facades\Storage;
 
 class PanierController extends Controller
 {
@@ -61,7 +62,9 @@ class PanierController extends Controller
                 'nom_produit' => $produit->nom_produit,
                 'modele' => $variante->modele,
                 'taille' => $variante->taille,
-                'image' => $variante->image,
+                'image' => $variante->image
+                    ? Storage::disk('public')->url($variante->image)
+                    : null,
                 'prix_unitaire' => $produit->prix,
                 'quantite' => $article->quantite,
                 'stock_disponible' => max(

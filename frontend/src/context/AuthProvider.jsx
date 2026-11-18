@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 import { AuthContext } from './AuthContext'
 import { useNotification } from '../hooks/useNotification'
 import { tokenStorage } from '../api/tokenStorage'
 import { setAuthHandlers } from '../api/http'
 import * as authApi from '../api/auth.api'
-import { isStaffRole, isSuperAdminRole } from '../utils/roles'
+import { isClientRole, isStaffRole, isSuperAdminRole } from '../utils/roles'
 
 // Restaure la session à partir du token enregistré.
 // 401 ou 403 : le token ne vaut plus rien, on l'efface.
@@ -24,6 +25,7 @@ async function fetchSession() {
 
 export default function AuthProvider({ children }) {
   const notify = useNotification()
+  const queryClient = useQueryClient()
   const [user, setUser] = useState(null)
   const [isLoading, setIsLoading] = useState(() => Boolean(tokenStorage.get()))
   const [sessionError, setSessionError] = useState(false)
@@ -51,13 +53,14 @@ export default function AuthProvider({ children }) {
       onUnauthorized: () => {
         tokenStorage.clear()
         setUser(null)
+        queryClient.clear() // aucune donnée de l'ancienne session ne doit rester en mémoire
         notify.error('Votre session a expiré. Veuillez vous reconnecter.')
       },
       onForbidden: (error) => {
         notify.error(error.response?.data?.message || 'Accès refusé.')
       },
     })
-  }, [notify])
+  }, [notify, queryClient])
 
   const retrySession = useCallback(async () => {
     setSessionError(false)
@@ -100,7 +103,8 @@ export default function AuthProvider({ children }) {
     }
     tokenStorage.clear()
     setUser(null)
-  }, [])
+    queryClient.clear() // panier et données privées effacés de la mémoire
+  }, [queryClient])
 
   const value = useMemo(
     () => ({
@@ -108,8 +112,9 @@ export default function AuthProvider({ children }) {
       isLoading,
       sessionError,
       isAuthenticated: Boolean(user),
-      isAdmin: isStaffRole(user?.role),        // ADMIN ou SUPER_ADMIN
+      isAdmin: isStaffRole(user?.role), // ADMIN ou SUPER_ADMIN
       isSuperAdmin: isSuperAdminRole(user?.role),
+      isClient: isClientRole(user?.role),
       role: user?.role ?? null,
       login,
       register,

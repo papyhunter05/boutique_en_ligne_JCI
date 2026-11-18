@@ -20,12 +20,17 @@ import CommandeDetailPage from '../pages/admin/CommandeDetailPage'
 import LivraisonsPage from '../pages/admin/LivraisonsPage'
 import LivraisonDetailPage from '../pages/admin/LivraisonDetailPage'
 import UtilisateurDetailPage from '../pages/admin/UtilisateurDetailPage'
+import RequireClient from '../components/common/RequireClient'
+import CartPage from '../pages/public/CartPage'
 
 export default function App() {
   return (
     <Routes>
       <Route element={<PublicLayout />}>
         <Route index element={<HomePage />} />
+        <Route element={<RequireClient />}>
+          <Route path="panier" element={<CartPage />} />
+        </Route>
       </Route>
 
       <Route path="/admin" element={<RequireAdmin />}>

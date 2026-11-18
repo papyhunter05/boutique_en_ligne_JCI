@@ -14,6 +14,9 @@ use App\Http\Controllers\Api\Admin\AdminCommandeController;
 use App\Http\Controllers\Api\Admin\AdminLivraisonController;
 use App\Http\Controllers\Api\Admin\AdminAgenceTransportController;
 use App\Http\Controllers\Api\Admin\AdminUtilisateurController;
+use App\Http\Controllers\Api\SuperAdmin\SuperAdminConfigurationController;
+use App\Models\Configuration;
+
 
 // Routes publiques
 Route::prefix('auth')->group(function () {
@@ -108,6 +111,38 @@ Route::middleware(['auth:sanctum', 'superadmin'])
 
     });
 
+// Gestion des configurations : SUPER_ADMIN uniquement
+Route::middleware(['auth:sanctum', 'superadmin'])
+    ->prefix('super-admin')
+    ->group(function () {
+
+        Route::get(
+            '/configurations',
+            [SuperAdminConfigurationController::class, 'index']
+        );
+
+        Route::post(
+            '/configurations',
+            [SuperAdminConfigurationController::class, 'store']
+        );
+
+        Route::put(
+            '/configurations/{id}',
+            [SuperAdminConfigurationController::class, 'update']
+        );
+
+    });
+
 // Routes ne nécessitant pas une authentification
 Route::get('/categories', [CategorieController::class, 'index']);
 Route::get('/produits', [ProduitController::class, 'index']);
+
+// Informations publiques nécessaires au checkout
+Route::get('/informations-livraison', function () {
+    return response()->json([
+        'success' => true,
+        'data' => [
+            'frais_livraison' => (float) Configuration::obtenirValeur('frais_livraison', 0),
+        ],
+    ]);
+});

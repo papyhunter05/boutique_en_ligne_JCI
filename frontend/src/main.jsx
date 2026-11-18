@@ -17,6 +17,7 @@ import AuthModalProvider from './context/AuthModalProvider.jsx'
 import NotificationProvider from './context/NotificationProvider.jsx'
 import AuthProvider from './context/AuthProvider.jsx'
 import App from './app/App.jsx'
+import ProductModalProvider from './context/ProductModalProvider.jsx'
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -40,7 +41,9 @@ createRoot(document.getElementById('root')).render(
           <NotificationProvider>
             <AuthProvider>
               <AuthModalProvider>
-                <App />
+                <ProductModalProvider>
+                  <App />
+                </ProductModalProvider>
               </AuthModalProvider>
             </AuthProvider>
           </NotificationProvider>

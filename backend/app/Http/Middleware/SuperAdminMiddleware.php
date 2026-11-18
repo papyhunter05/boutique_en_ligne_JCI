@@ -12,10 +12,19 @@ class SuperAdminMiddleware
     {
         $utilisateur = $request->user();
 
-        if (!$utilisateur || $utilisateur->role !== 'SUPER_ADMIN') {
+        // Vérifier l'authentification
+        if (!$utilisateur) {
             return response()->json([
                 'success' => false,
-                'message' => 'Accès réservé au SUPER_ADMIN.',
+                'message' => 'Authentification requise.',
+            ], 401);
+        }
+
+        // Vérifier le rôle SUPER_ADMIN
+        if ($utilisateur->role !== 'SUPER_ADMIN') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Accès interdit. Réservé au SUPER_ADMIN.',
             ], 403);
         }
 

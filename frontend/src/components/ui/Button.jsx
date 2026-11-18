@@ -8,6 +8,7 @@ export default function Button({
   fullWidth = false,
   loading = false,
   leftIcon = null,
+  rightIcon = null,
   type = 'button',
   disabled = false,
   className = '',
@@ -34,7 +35,7 @@ export default function Button({
   return (
     <Component className={classes} {...buttonProps} {...rest}>
       {loading ? <span className={styles.spinner} aria-hidden="true" /> : leftIcon}
-      <span>{children}</span>
+      <span>{children}</span>{rightIcon}
     </Component>
   )
 }

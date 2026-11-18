@@ -4,6 +4,9 @@ import styles from './Modal.module.css'
 
 // Doit correspondre à la durée des animations dans Modal.module.css
 const ANIMATION_MS = 200
+// Nombre de modales affichées : le défilement de la page n'est rendu qu'à la fermeture de la dernière
+let openModals = 0
+let savedOverflow = ''
 
 export default function Modal({
   isOpen,
@@ -51,13 +54,15 @@ export default function Modal({
     return () => clearTimeout(timer)
   }, [isOpen])
 
-  // Bloque le défilement de la page tant que la modale est à l'écran
+  // Bloque le défilement de la page tant qu'une modale est à l'écran
   useEffect(() => {
     if (!hasContent) return
-    const previous = document.body.style.overflow
+    if (openModals === 0) savedOverflow = document.body.style.overflow
+    openModals += 1
     document.body.style.overflow = 'hidden'
     return () => {
-      document.body.style.overflow = previous
+      openModals -= 1
+      if (openModals === 0) document.body.style.overflow = savedOverflow
     }
   }, [hasContent])
 
