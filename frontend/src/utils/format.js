@@ -49,3 +49,13 @@ export function formatDateTime(value) {
 export function formatVariante({ modele, taille }) {
   return [modele || 'Sans modèle', taille].filter(Boolean).join(' · ')
 }
+
+// « 1 produit », « 3 produits » (0 et 1 au singulier, comme en français)
+export function pluralize(count, singular, plural = `${singular}s`) {
+  return `${count} ${count > 1 ? plural : singular}`
+}
+
+// « 3 résultats sur 12 »
+export function formatResultCount(shown, total) {
+  return `${pluralize(shown, 'résultat')} sur ${total}`
+}

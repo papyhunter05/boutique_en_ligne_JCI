@@ -31,7 +31,7 @@
 
 .stats {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: var(--space-4);
 }
 
@@ -53,4 +53,12 @@
 
 @media (max-width: 599px) {
   .card { padding: var(--space-3); }
+}
+
+.notice {
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--text-xs);
+  color: var(--color-slate);
+  background: var(--color-amber-40);
+  border-radius: var(--radius-sm);
 }

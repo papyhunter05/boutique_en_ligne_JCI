@@ -1,6 +1,14 @@
-/* Ordinateur et tablette : le cadre défile dans les deux sens quand le contenu le dépasse */
+/* Conteneur de référence : les règles « cartes » dépendent de SA largeur.
+   Il ne peut jamais dépasser la place que lui laisse la page. */
+.root {
+  container-type: inline-size;
+  min-width: 0;
+}
+
+/* Si le tableau est trop large pour sa zone, il défile horizontalement dans son cadre.
+   Vertical : aucune limite par défaut, c'est la page qui défile. */
 .wrapper {
-  --table-max-height: min(65vh, 620px);
+  --table-max-height: 50vh;
 
   max-height: var(--table-max-height);
   overflow: auto;
@@ -22,12 +30,11 @@
 .table {
   width: 100%;
   min-width: 640px;
-  border-collapse: separate; /* nécessaire pour que l'en-tête collant garde sa bordure */
+  border-collapse: separate;
   border-spacing: 0;
   font-size: var(--text-sm);
 }
 
-/* En-tête collé en haut pendant le défilement vertical */
 .table th {
   position: sticky;
   top: 0;
@@ -54,12 +61,46 @@
 .right  { text-align: right !important; }
 .center { text-align: center !important; }
 
-/* Téléphone : chaque ligne devient une carte, et c'est la page qui défile.
-   Un cadre qui défile à l'intérieur d'une page qui défile piège le doigt. */
-@media (max-width: 719px) {
+/* Ligne mise en évidence (ex. produit désactivé) : contour rouge, sans changer la mise en page */
+.table tbody tr[data-tone='danger'] td {
+  border-top-color: transparent;
+  box-shadow: inset 0 2px 0 var(--color-danger), inset 0 -2px 0 var(--color-danger);
+}
+.table tbody tr[data-tone='danger'] td:first-child {
+  border-top-left-radius: var(--radius-sm);
+  border-bottom-left-radius: var(--radius-sm);
+  box-shadow:
+    inset 2px 0 0 var(--color-danger),
+    inset 0 2px 0 var(--color-danger),
+    inset 0 -2px 0 var(--color-danger);
+}
+.table tbody tr[data-tone='danger'] td:last-child {
+  border-top-right-radius: var(--radius-sm);
+  border-bottom-right-radius: var(--radius-sm);
+  box-shadow:
+    inset -2px 0 0 var(--color-danger),
+    inset 0 2px 0 var(--color-danger),
+    inset 0 -2px 0 var(--color-danger);
+}
+
+/* Zone du tableau étroite (téléphone, ou écran moyen avec la barre latérale ouverte) :
+   chaque ligne devient une carte. */
+@container (max-width: 719px) {
   .wrapper {
     max-height: none;
     overflow: visible;
+  }
+  
+    /* Cartes : le contour entoure la carte entière, pas chaque champ */
+  .table tbody tr[data-tone='danger'] td,
+  .table tbody tr[data-tone='danger'] td:first-child,
+  .table tbody tr[data-tone='danger'] td:last-child {
+    box-shadow: none;
+    border-radius: 0;
+    border-top-color: var(--color-border);
+  }
+  .table tbody tr[data-tone='danger'] {
+    border: 2px solid var(--color-danger);
   }
 
   .table { display: block; min-width: 0; }

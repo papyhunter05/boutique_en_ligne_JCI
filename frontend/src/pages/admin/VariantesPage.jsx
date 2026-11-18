@@ -1,18 +1,29 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import Button from '../../components/ui/Button'
-import { IconPlus } from '../../components/ui/tablerIcons'
+import {
+  IconBoxMultipleFilled,
+  IconPencilFilled,
+  IconPlus,
+} from '../../components/ui/tablerIcons'
 import DataTable from '../../components/admin/DataTable'
 import StatutBadge from '../../components/admin/StatutBadge'
+import FilterBar, { SearchFilter, SelectFilter } from '../../components/admin/FilterBar'
 import ConfirmDialog from '../../components/common/ConfirmDialog'
 import StateMessage from '../../components/common/StateMessage'
 import ProductImage from '../../components/shop/ProductImage'
 import VarianteFormModal from './VarianteFormModal'
 import { useToggleVarianteStatut, useVariantes } from '../../hooks/useAdminVariantes'
+import { useFilters } from '../../hooks/useFilters'
 import { useNotification } from '../../hooks/useNotification'
 import { getErrorMessage } from '../../utils/errors'
-import { formatPrix } from '../../utils/format'
+import { matchesSearch } from '../../utils/filters'
+import { STATUT_OPTIONS, STOCK_OPTIONS } from '../../utils/filterOptions'
+import { formatPrix, formatResultCount } from '../../utils/format'
 import styles from './VariantesPage.module.css'
+
+const EMPTY = []
+const INITIAL_FILTERS = { search: '', statut: '', stock: '' }
 
 export default function VariantesPage() {
   const { id } = useParams()
@@ -21,6 +32,21 @@ export default function VariantesPage() {
 
   const { data, isPending, isError, error, refetch } = useVariantes(id)
   const statutMutation = useToggleVarianteStatut()
+  const variantes = data?.variantes ?? EMPTY
+
+  const { filters, setFilter, reset, hasActive } = useFilters(INITIAL_FILTERS)
+
+  const filtered = useMemo(
+    () =>
+      variantes.filter(
+        (v) =>
+          matchesSearch(filters.search, [v.modele, v.taille, v.sku]) &&
+          (!filters.statut || v.statut === filters.statut) &&
+          (!filters.stock ||
+            (filters.stock === 'disponible' ? v.stock_disponible > 0 : v.stock_disponible <= 0)),
+      ),
+    [variantes, filters],
+  )
 
   // La variante ciblée est conservée après la fermeture de la modale :
   // son contenu ne doit pas changer pendant l'animation de sortie.
@@ -71,7 +97,7 @@ export default function VariantesPage() {
       render: (v) => (
         <div className={styles.variant}>
           <div className={styles.thumb}>
-            <ProductImage src={v.image_url} />
+            <ProductImage src={v.image} />
           </div>
           <div className={styles.variantText}>
             <strong className={styles.name}>{v.modele || 'Sans modèle'}</strong>
@@ -93,8 +119,8 @@ export default function VariantesPage() {
     {
       key: 'actions',
       header: 'Actions',
-      mobile: 'actions',
       align: 'right',
+      mobile: 'actions',
       render: (v) => (
         <div className={styles.actions}>
           <Button
@@ -102,19 +128,37 @@ export default function VariantesPage() {
             to={`/admin/stock/variantes/${v.id_variante}`}
             variant="soft"
             size="sm"
+            className={styles.iconAction}
+            aria-label={`Stock de la variante ${v.sku}`}
+            title="Stock"
+            leftIcon={<IconBoxMultipleFilled size={18} aria-hidden="true" />}
           >
-            Stock
-          </Button>
-          <Button variant="soft" size="sm" onClick={() => openEdit(v)}>
-            Modifier
+            <span className="sr-only">Stock</span>
           </Button>
           <Button
             variant="soft"
             size="sm"
+            className={styles.iconAction}
+            onClick={() => openEdit(v)}
+            aria-label={`Modifier la variante ${v.sku}`}
+            title="Modifier"
+            leftIcon={<IconPencilFilled size={18} aria-hidden="true" />}
+          >
+            <span className="sr-only">Modifier</span>
+          </Button>
+          <Button
+            variant="soft"
+            size="sm"
+            className={styles.statusToggle}
             onClick={() => handleToggleClick(v)}
             disabled={statutMutation.isPending}
+            role="switch"
+            aria-checked={v.statut === 'ACTIF'}
+            aria-label={`${v.statut === 'ACTIF' ? 'Désactiver' : 'Activer'} la variante ${v.sku}`}
+            title={v.statut === 'ACTIF' ? 'Désactiver' : 'Activer'}
+            data-active={v.statut === 'ACTIF'}
           >
-            {v.statut === 'ACTIF' ? 'Désactiver' : 'Activer'}
+            <span className="sr-only">{v.statut === 'ACTIF' ? 'Désactiver' : 'Activer'}</span>
           </Button>
         </div>
       ),
@@ -155,7 +199,7 @@ export default function VariantesPage() {
       )
     }
 
-    if (data.variantes.length === 0) {
+    if (variantes.length === 0) {
       return (
         <StateMessage
           title="Aucune variante pour ce produit."
@@ -167,12 +211,49 @@ export default function VariantesPage() {
     }
 
     return (
-      <DataTable
-        caption="Liste des variantes du produit"
-        columns={columns}
-        rows={data.variantes}
-        rowKey={(v) => v.id_variante}
-      />
+      <>
+        <FilterBar
+          hasActiveFilters={hasActive}
+          onReset={reset}
+          summary={formatResultCount(filtered.length, variantes.length)}
+        >
+          <SearchFilter
+            value={filters.search}
+            onChange={(value) => setFilter('search', value)}
+            placeholder="Modèle, taille ou SKU…"
+          />
+          <SelectFilter
+            label="Statut"
+            placeholder="Tous les statuts"
+            options={STATUT_OPTIONS}
+            value={filters.statut}
+            onChange={(value) => setFilter('statut', value)}
+          />
+          <SelectFilter
+            label="Stock"
+            placeholder="Tous les stocks"
+            options={STOCK_OPTIONS}
+            value={filters.stock}
+            onChange={(value) => setFilter('stock', value)}
+          />
+        </FilterBar>
+
+        {filtered.length === 0 ? (
+          <StateMessage
+            title="Aucune variante ne correspond."
+            message="Modifiez ou réinitialisez les filtres."
+            actionLabel="Réinitialiser les filtres"
+            onAction={reset}
+          />
+        ) : (
+          <DataTable
+            caption="Liste des variantes du produit"
+            columns={columns}
+            rows={filtered}
+            rowKey={(v) => v.id_variante}
+          />
+        )}
+      </>
     )
   }
 

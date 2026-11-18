@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useId, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -22,6 +22,11 @@ const TEXTS = {
     confirm: "Confirmer l'entrée",
     sign: '+',
     motifPlaceholder: 'Ex. Réception fournisseur',
+    motifSuggestions: [
+      'Réapprovisionnement fournisseur',
+      'Nouvel achat de marchandises',
+      'Retour client',
+    ],
     success: 'Réapprovisionnement enregistré.',
     confirmVariant: 'accent',
   },
@@ -31,6 +36,12 @@ const TEXTS = {
     confirm: 'Confirmer la sortie',
     sign: '−',
     motifPlaceholder: 'Ex. Article endommagé',
+    motifSuggestions: [
+      'Produit endommagé',
+      'Produit défectueux',
+      'Perte de marchandises',
+      'Vol de marchandises',
+    ],
     success: 'Sortie de stock enregistrée.',
     confirmVariant: 'danger',
   },
@@ -62,6 +73,7 @@ function buildSchema(isFixed) {
 
 function MouvementForm({ mode, fixedVariante, produits, onClose }) {
   const isFixed = Boolean(fixedVariante)
+  const motifListId = useId()
   const texts = TEXTS[mode]
   const notify = useNotification()
   const entreeMutation = useCreateEntree()
@@ -231,9 +243,15 @@ function MouvementForm({ mode, fixedVariante, produits, onClose }) {
         <Input
           label="Motif"
           placeholder={texts.motifPlaceholder}
+          list={motifListId}
           error={errors.motif?.message}
           {...register('motif')}
         />
+        <datalist id={motifListId}>
+          {texts.motifSuggestions.map((suggestion) => (
+            <option key={suggestion} value={suggestion} />
+          ))}
+        </datalist>
 
         {errors.root && (
           <p role="alert" className={styles.formError}>

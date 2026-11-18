@@ -21,7 +21,11 @@ function useRefreshAfterChange() {
   const queryClient = useQueryClient()
   return () =>
     Promise.all([
-      queryClient.invalidateQueries({ queryKey: ['produits'] }),
+      queryClient.invalidateQueries({
+        queryKey: ['produits'],
+        // Le stock vient des variantes : un changement de produit ne le modifie pas
+        predicate: (query) => query.queryKey[1] !== 'variantes',
+      }),
       queryClient.invalidateQueries({ queryKey: ['categories'] }),
     ])
 }

@@ -8,7 +8,7 @@ import {
 
 export function useVariantes(idProduit) {
   return useQuery({
-    queryKey: ['produits', 'variantes', idProduit],
+    queryKey: ['produits', 'variantes', String(idProduit)],
     queryFn: () => getVariantes(idProduit),
     enabled: Boolean(idProduit),
   })

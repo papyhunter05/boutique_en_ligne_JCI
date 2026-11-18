@@ -20,7 +20,10 @@ function useRefreshAfterChange() {
   return () =>
     Promise.all([
       queryClient.invalidateQueries({ queryKey: ['categories'] }),
-      queryClient.invalidateQueries({ queryKey: ['produits'] }),
+      queryClient.invalidateQueries({
+        queryKey: ['produits'],
+        predicate: (query) => query.queryKey[1] !== 'variantes',
+      }),
     ])
 }
 

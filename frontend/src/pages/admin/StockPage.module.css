@@ -40,3 +40,11 @@
 @media (max-width: 599px) {
   .card { padding: var(--space-3); }
 }
+
+.notice {
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--text-xs);
+  color: var(--color-slate);
+  background: var(--color-amber-40);
+  border-radius: var(--radius-sm);
+}

@@ -1,36 +1,51 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import Button from '../../components/ui/Button'
-import StatusBadge from '../../components/ui/StatusBadge'
-import { IconPlus } from '../../components/ui/tablerIcons'
+import { IconPencilFilled, IconPlus } from '../../components/ui/tablerIcons'
 import DataTable from '../../components/admin/DataTable'
+import StatutBadge from '../../components/admin/StatutBadge'
+import FilterBar, { SearchFilter, SelectFilter } from '../../components/admin/FilterBar'
 import ConfirmDialog from '../../components/common/ConfirmDialog'
 import StateMessage from '../../components/common/StateMessage'
 import CategorieFormModal from './CategorieFormModal'
 import { useAdminCategories, useSetCategorieStatut } from '../../hooks/useAdminCategories'
+import { useFilters } from '../../hooks/useFilters'
 import { useNotification } from '../../hooks/useNotification'
 import { getErrorMessage } from '../../utils/errors'
-import { formatDate } from '../../utils/format'
+import { matchesSearch } from '../../utils/filters'
+import { STATUT_OPTIONS } from '../../utils/filterOptions'
+import { formatDate, formatResultCount } from '../../utils/format'
 import styles from './CategoriesPage.module.css'
 
-function StatutBadge({ statut }) {
-  if (statut === 'ACTIF') return <StatusBadge tone="success">Actif</StatusBadge>
-  if (statut === 'INACTIF') return <StatusBadge tone="neutral">Inactif</StatusBadge>
-  return <StatusBadge tone="warning">{statut}</StatusBadge>
-}
+const EMPTY = []
+const INITIAL_FILTERS = { search: '', statut: '' }
 
 export default function CategoriesPage() {
   const notify = useNotification()
-  const { data: categories, isPending, isError, refetch } = useAdminCategories()
+  const { data, isPending, isError, refetch } = useAdminCategories()
   const statutMutation = useSetCategorieStatut()
+  const categories = data ?? EMPTY
 
-  // On garde la catégorie ciblée même après la fermeture de la modale :
-  // le contenu ne doit pas changer pendant l'animation de sortie.
+  const { filters, setFilter, reset, hasActive } = useFilters(INITIAL_FILTERS)
+
+  const filtered = useMemo(
+    () =>
+      categories.filter(
+        (c) =>
+          matchesSearch(filters.search, [c.nom_categorie, c.description]) &&
+          (!filters.statut || c.statut === filters.statut),
+      ),
+    [categories, filters],
+  )
+
+  // La catégorie ciblée est conservée après la fermeture de la modale :
+  // son contenu ne doit pas changer pendant l'animation de sortie.
   const [formState, setFormState] = useState({ open: false, categorie: null })
   const [toggle, setToggle] = useState({ open: false, categorie: null })
 
   const openCreate = () => setFormState({ open: true, categorie: null })
   const openEdit = (categorie) => setFormState({ open: true, categorie })
   const closeForm = () => setFormState((state) => ({ ...state, open: false }))
+  const closeToggle = () => setToggle((state) => ({ ...state, open: false }))
 
   async function changeStatut(categorie) {
     const statut = categorie.statut === 'ACTIF' ? 'INACTIF' : 'ACTIF'
@@ -57,7 +72,7 @@ export default function CategoriesPage() {
 
   async function confirmDeactivation() {
     await changeStatut(toggle.categorie)
-    setToggle((state) => ({ ...state, open: false }))
+    closeToggle()
   }
 
   const columns = [
@@ -82,16 +97,30 @@ export default function CategoriesPage() {
       mobile: 'actions',
       render: (c) => (
         <div className={styles.actions}>
-          <Button variant="soft" size="sm" onClick={() => openEdit(c)}>
-            Modifier
+          <Button
+            variant="soft"
+            size="sm"
+            className={styles.iconAction}
+            onClick={() => openEdit(c)}
+            aria-label={`Modifier la catégorie ${c.nom_categorie}`}
+            title="Modifier"
+            leftIcon={<IconPencilFilled size={18} aria-hidden="true" />}
+          >
+            <span className="sr-only">Modifier</span>
           </Button>
           <Button
             variant="soft"
             size="sm"
+            className={styles.statusToggle}
             onClick={() => handleToggleClick(c)}
             disabled={statutMutation.isPending}
+            role="switch"
+            aria-checked={c.statut === 'ACTIF'}
+            aria-label={`${c.statut === 'ACTIF' ? 'Désactiver' : 'Activer'} la catégorie ${c.nom_categorie}`}
+            title={c.statut === 'ACTIF' ? 'Désactiver' : 'Activer'}
+            data-active={c.statut === 'ACTIF'}
           >
-            {c.statut === 'ACTIF' ? 'Désactiver' : 'Activer'}
+            <span className="sr-only">{c.statut === 'ACTIF' ? 'Désactiver' : 'Activer'}</span>
           </Button>
         </div>
       ),
@@ -133,12 +162,42 @@ export default function CategoriesPage() {
     }
 
     return (
-      <DataTable
-        caption="Liste des catégories"
-        columns={columns}
-        rows={categories}
-        rowKey={(c) => c.id_categorie}
-      />
+      <>
+        <FilterBar
+          hasActiveFilters={hasActive}
+          onReset={reset}
+          summary={formatResultCount(filtered.length, categories.length)}
+        >
+          <SearchFilter
+            value={filters.search}
+            onChange={(value) => setFilter('search', value)}
+            placeholder="Nom ou description…"
+          />
+          <SelectFilter
+            label="Statut"
+            placeholder="Tous les statuts"
+            options={STATUT_OPTIONS}
+            value={filters.statut}
+            onChange={(value) => setFilter('statut', value)}
+          />
+        </FilterBar>
+
+        {filtered.length === 0 ? (
+          <StateMessage
+            title="Aucune catégorie ne correspond."
+            message="Modifiez ou réinitialisez les filtres."
+            actionLabel="Réinitialiser les filtres"
+            onAction={reset}
+          />
+        ) : (
+          <DataTable
+            caption="Liste des catégories"
+            columns={columns}
+            rows={filtered}
+            rowKey={(c) => c.id_categorie}
+          />
+        )}
+      </>
     )
   }
 
@@ -166,7 +225,7 @@ export default function CategoriesPage() {
 
       <ConfirmDialog
         isOpen={toggle.open}
-        onClose={() => setToggle((state) => ({ ...state, open: false }))}
+        onClose={closeToggle}
         onConfirm={confirmDeactivation}
         loading={statutMutation.isPending}
         title="Désactiver la catégorie ?"

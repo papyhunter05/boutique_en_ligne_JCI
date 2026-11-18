@@ -10,17 +10,18 @@ use Illuminate\Http\JsonResponse;
 class AdminUtilisateurController extends Controller
 {
     /**
-     * Lister et rechercher les clients.
+     * Lister et rechercher les clients et administrateurs.
      */
     public function index(Request $request): JsonResponse
     {
         $validated = $request->validate([
             'recherche' => ['nullable', 'string', 'max:255'],
             'statut' => ['nullable', 'in:ACTIF,BLOQUE'],
+            'role' => ['nullable', 'in:CLIENT,ADMIN'],
         ]);
 
         $query = Utilisateur::query()
-            ->where('role', 'CLIENT');
+            ->whereIn('role', ['CLIENT', 'ADMIN']);
 
         // Recherche par nom, prénom, email ou téléphone.
         if (!empty($validated['recherche'])) {
@@ -39,6 +40,11 @@ class AdminUtilisateurController extends Controller
             $query->where('statut', $validated['statut']);
         }
 
+        // Filtrage par rôle.
+        if (!empty($validated['role'])) {
+            $query->where('role', $validated['role']);
+        }
+
         $utilisateurs = $query
             ->select([
                 'id_utilisateur',
@@ -46,6 +52,7 @@ class AdminUtilisateurController extends Controller
                 'prenom',
                 'email',
                 'telephone',
+                'role',
                 'statut',
             ])
             ->orderByDesc('id_utilisateur')
@@ -54,20 +61,18 @@ class AdminUtilisateurController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'Liste des clients récupérée avec succès.',
+            'message' => 'Liste des utilisateurs récupérée avec succès.',
             'data' => $utilisateurs,
         ]);
     }
 
-
-
-/**
- * Consulter les détails d'un client.
- */
+    /**
+     * Consulter les détails d'un client ou administrateur.
+     */
     public function show(int $idUtilisateur): JsonResponse
     {
         $utilisateur = Utilisateur::query()
-            ->where('role', 'CLIENT')
+            ->whereIn('role', ['CLIENT', 'ADMIN'])
             ->with([
                 'commandes' => function ($query) {
                     $query->select([
@@ -87,6 +92,7 @@ class AdminUtilisateurController extends Controller
                 'prenom',
                 'email',
                 'telephone',
+                'role',
                 'statut',
             ])
             ->find($idUtilisateur);
@@ -94,31 +100,30 @@ class AdminUtilisateurController extends Controller
         if (!$utilisateur) {
             return response()->json([
                 'success' => false,
-                'message' => 'Client introuvable.',
+                'message' => 'Utilisateur introuvable.',
             ], 404);
         }
 
         return response()->json([
             'success' => true,
-            'message' => 'Détails du client récupérés avec succès.',
+            'message' => 'Détails de l’utilisateur récupérés avec succès.',
             'data' => $utilisateur,
         ]);
     }
 
-
-/**
- * Bloquer ou débloquer un compte client.
- */
+    /**
+     * Bloquer ou débloquer un compte client ou administrateur.
+     */
     public function updateStatut(int $idUtilisateur): JsonResponse
     {
         $utilisateur = Utilisateur::query()
-            ->where('role', 'CLIENT')
+            ->whereIn('role', ['CLIENT', 'ADMIN'])
             ->find($idUtilisateur);
 
         if (!$utilisateur) {
             return response()->json([
                 'success' => false,
-                'message' => 'Client introuvable.',
+                'message' => 'Utilisateur introuvable ou modification interdite.',
             ], 404);
         }
 
@@ -138,21 +143,21 @@ class AdminUtilisateurController extends Controller
         return response()->json([
             'success' => true,
             'message' => $nouveauStatut === 'BLOQUE'
-                ? 'Compte client bloqué avec succès.'
-                : 'Compte client débloqué avec succès.',
+                ? 'Compte bloqué avec succès.'
+                : 'Compte débloqué avec succès.',
             'data' => [
                 'id_utilisateur' => $utilisateur->id_utilisateur,
                 'nom' => $utilisateur->nom,
                 'prenom' => $utilisateur->prenom,
+                'role' => $utilisateur->role,
                 'statut' => $utilisateur->statut,
             ],
         ]);
     }
 
-
-/**
- * Créer un nouveau compte administrateur.
- */
+    /**
+     * Créer un nouveau compte administrateur.
+     */
     public function storeAdmin(Request $request): JsonResponse
     {
         $validated = $request->validate([
@@ -187,5 +192,4 @@ class AdminUtilisateurController extends Controller
             ],
         ], 201);
     }
-
 }

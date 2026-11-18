@@ -1,9 +1,15 @@
 import { NavLink } from 'react-router-dom'
 import Logo from '../common/Logo'
 import { ADMIN_NAV } from '../../app/adminNav'
+import { useAuth } from '../../hooks/useAuth'
 import styles from './AdminSidebar.module.css'
 
 export default function AdminSidebar({ isOpen, onNavigate }) {
+  const { isSuperAdmin } = useAuth()
+
+  // Un ADMIN ne voit pas les entrées réservées au SUPER_ADMIN
+  const items = ADMIN_NAV.filter((item) => !item.superAdminOnly || isSuperAdmin)
+
   return (
     <aside
       id="admin-sidebar"
@@ -16,7 +22,7 @@ export default function AdminSidebar({ isOpen, onNavigate }) {
 
       <nav>
         <ul className={styles.list}>
-          {ADMIN_NAV.map(({ path, label, icon: Icon, enabled, end }) => (
+          {items.map(({ path, label, icon: Icon, enabled, end }) => (
             <li key={path}>
               {enabled ? (
                 <NavLink

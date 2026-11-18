@@ -12,6 +12,14 @@ import ProduitsPage from '../pages/admin/ProduitsPage'
 import VariantesPage from '../pages/admin/VariantesPage'
 import StockPage from '../pages/admin/StockPage'
 import VarianteStockPage from '../pages/admin/VarianteStockPage'
+import RequireSuperAdmin from '../components/common/RequireSuperAdmin'
+import UtilisateursPage from '../pages/admin/UtilisateursPage'
+import AgencesPage from '../pages/admin/AgencesPage'
+import CommandesPage from '../pages/admin/CommandesPage'
+import CommandeDetailPage from '../pages/admin/CommandeDetailPage'
+import LivraisonsPage from '../pages/admin/LivraisonsPage'
+import LivraisonDetailPage from '../pages/admin/LivraisonDetailPage'
+import UtilisateurDetailPage from '../pages/admin/UtilisateurDetailPage'
 
 export default function App() {
   return (
@@ -28,6 +36,15 @@ export default function App() {
           <Route path="produits/:id/variantes" element={<VariantesPage />} />
           <Route path="stock" element={<StockPage />} />
           <Route path="stock/variantes/:idVariante" element={<VarianteStockPage />} />
+          <Route path="agences" element={<AgencesPage />} />
+          <Route path="commandes" element={<CommandesPage />} />
+          <Route path="commandes/:id" element={<CommandeDetailPage />} />
+          <Route path="livraisons" element={<LivraisonsPage />} />
+          <Route path="livraisons/:id" element={<LivraisonDetailPage />} />
+          <Route element={<RequireSuperAdmin />}>
+            <Route path="utilisateurs" element={<UtilisateursPage />} />
+            <Route path="utilisateurs/:id" element={<UtilisateurDetailPage />} />
+          </Route>
         </Route>
       </Route>
 

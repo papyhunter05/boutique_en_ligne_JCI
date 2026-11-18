@@ -2,15 +2,31 @@ import { useState } from 'react'
 import Button from '../../components/ui/Button'
 import { IconMinus, IconPlus } from '../../components/ui/tablerIcons'
 import MouvementsTable from '../../components/admin/MouvementsTable'
+import MouvementFilters from '../../components/admin/MouvementFilters'
 import StateMessage from '../../components/common/StateMessage'
 import Pagination from '../../components/common/Pagination'
 import MouvementFormModal from './MouvementFormModal'
-import { useMouvements } from '../../hooks/useAdminStock'
+import { useAllMouvements } from '../../hooks/useAdminStock'
+import { useMouvementFilters } from '../../hooks/useMouvementFilters'
+import { usePaged } from '../../hooks/usePaged'
+import { formatResultCount, pluralize } from '../../utils/format'
 import styles from './StockPage.module.css'
 
+const EMPTY = []
+const PAGE_SIZE = 15
+
 export default function StockPage() {
-  const [page, setPage] = useState(1)
-  const { data, isPending, isError, isFetching, refetch } = useMouvements(page)
+  const { data, isPending, isError, isFetching, refetch } = useAllMouvements()
+  const items = data?.items ?? EMPTY
+
+  const filterState = useMouvementFilters(items)
+  const { filtered, reset } = filterState
+
+  const { page, lastPage, pageItems, setPage } = usePaged(
+    filtered,
+    PAGE_SIZE,
+    JSON.stringify(filterState.filters),
+  )
 
   // Le mode est conservé après la fermeture : le contenu ne change pas pendant l'animation de sortie
   const [formState, setFormState] = useState({ open: false, mode: 'entree' })
@@ -45,7 +61,7 @@ export default function StockPage() {
       )
     }
 
-    if (data.items.length === 0) {
+    if (items.length === 0) {
       return (
         <StateMessage
           title="Aucun mouvement de stock pour le moment."
@@ -56,16 +72,39 @@ export default function StockPage() {
 
     return (
       <>
-        <div className={isFetching ? styles.fetching : undefined} aria-busy={isFetching}>
-          <MouvementsTable rows={data.items} showProduct />
-        </div>
-        <Pagination
-          page={page}
-          lastPage={data.pagination.lastPage}
-          onChange={handlePageChange}
-          disabled={isFetching}
-          label="Pagination de l'historique"
+        {data.truncated && (
+          <p className={styles.notice} role="status">
+            Seuls les {items.length} mouvements les plus récents (sur {data.total}) sont chargés
+            et filtrés.
+          </p>
+        )}
+
+        <MouvementFilters
+          state={filterState}
+          searchPlaceholder="Produit, SKU, motif, administrateur…"
+          summary={formatResultCount(filtered.length, items.length)}
         />
+
+        {filtered.length === 0 ? (
+          <StateMessage
+            title="Aucun mouvement ne correspond."
+            message="Modifiez ou réinitialisez les filtres."
+            actionLabel="Réinitialiser les filtres"
+            onAction={reset}
+          />
+        ) : (
+          <>
+            <div className={isFetching ? styles.fetching : undefined} aria-busy={isFetching}>
+              <MouvementsTable rows={pageItems} showProduct />
+            </div>
+            <Pagination
+              page={page}
+              lastPage={lastPage}
+              onChange={handlePageChange}
+              label="Pagination de l'historique"
+            />
+          </>
+        )}
       </>
     )
   }
@@ -78,16 +117,24 @@ export default function StockPage() {
             <h1 className={styles.title}>Stock</h1>
             <p className={styles.subtitle}>
               {data
-                ? `${data.pagination.total} mouvement${data.pagination.total > 1 ? 's' : ''} enregistré${data.pagination.total > 1 ? 's' : ''}`
+                ? `${pluralize(data.total, 'mouvement')} enregistré${data.total > 1 ? 's' : ''}`
                 : 'Historique de tous les mouvements de stock.'}
             </p>
           </div>
 
           <div className={styles.buttons}>
-            <Button variant="dark" leftIcon={<IconPlus size={18} />} onClick={() => openForm('entree')}>
+            <Button
+              variant="dark"
+              leftIcon={<IconPlus size={18} />}
+              onClick={() => openForm('entree')}
+            >
               Réapprovisionner
             </Button>
-            <Button variant="soft" leftIcon={<IconMinus size={18} />} onClick={() => openForm('sortie')}>
+            <Button
+              variant="soft"
+              leftIcon={<IconMinus size={18} />}
+              onClick={() => openForm('sortie')}
+            >
               Sortie manuelle
             </Button>
           </div>

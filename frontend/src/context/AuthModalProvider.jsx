@@ -2,6 +2,7 @@ import { useCallback, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { AuthModalContext } from './AuthModalContext'
 import AuthModal from '../components/auth/AuthModal'
+import { isStaffRole } from '../utils/roles'
 
 export default function AuthModalProvider({ children }) {
   const navigate = useNavigate()
@@ -16,7 +17,7 @@ export default function AuthModalProvider({ children }) {
   const handleSuccess = useCallback(
     (utilisateur) => {
       close()
-      if (utilisateur.role === 'ADMIN') navigate('/admin')
+      if (isStaffRole(utilisateur.role)) navigate('/admin')
     },
     [close, navigate],
   )

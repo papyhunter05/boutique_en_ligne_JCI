@@ -91,15 +91,22 @@ Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function ()
     Route::put('/agences-transport/{idAgence}', [AdminAgenceTransportController::class, 'update']);
     Route::patch('/agences-transport/{idAgence}/statut', [AdminAgenceTransportController::class, 'updateStatut']);
 
+});
 
-    // Gestion des utilisateurs
-    Route::get('/utilisateurs', [AdminUtilisateurController::class, 'index']);
-    Route::get('/utilisateurs/{idUtilisateur}', [AdminUtilisateurController::class, 'show']);
-    Route::patch('/utilisateurs/{idUtilisateur}/statut', [AdminUtilisateurController::class, 'updateStatut']);
-    Route::post('/utilisateurs/admin', [AdminUtilisateurController::class, 'storeAdmin']);
+// Gestion des utilisateurs : SUPER_ADMIN uniquement
+Route::middleware(['auth:sanctum', 'superadmin'])
+    ->prefix('admin')
+    ->group(function () {
+
+        Route::get('/utilisateurs', [AdminUtilisateurController::class, 'index']);
+
+        Route::get('/utilisateurs/{idUtilisateur}', [AdminUtilisateurController::class, 'show']);
+
+        Route::patch('/utilisateurs/{idUtilisateur}/statut', [AdminUtilisateurController::class, 'updateStatut']);
+
+        Route::post('/utilisateurs/admin', [AdminUtilisateurController::class, 'storeAdmin']);
+
     });
-
-
 
 // Routes ne nécessitant pas une authentification
 Route::get('/categories', [CategorieController::class, 'index']);

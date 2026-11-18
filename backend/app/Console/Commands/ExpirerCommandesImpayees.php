@@ -80,9 +80,16 @@ class ExpirerCommandesImpayees extends Command
                         'statut' => 'EXPIRE',
                     ]);
 
+                // Annuler la commande.
                 $commande->update([
                     'statut' => 'ANNULEE',
                 ]);
+
+                // Annuler la livraison associée, si elle existe.
+                $commande->livraison()
+                    ->update([
+                        'statut' => 'ANNULEE',
+                    ]);
 
                 $nombreExpirees++;
             });

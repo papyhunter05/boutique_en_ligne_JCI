@@ -1,24 +1,61 @@
-import { useEffect, useState } from 'react'
-import { useLocation, useNavigate, Link } from 'react-router-dom'
+import { useEffect, useMemo, useState } from 'react'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import Button from '../../components/ui/Button'
 import StatusBadge from '../../components/ui/StatusBadge'
-import { IconPlus } from '../../components/ui/tablerIcons'
+import {
+  IconCategoryFilled,
+  IconInfoCircleFilled,
+  IconPencilFilled,
+  IconPlus,
+} from '../../components/ui/tablerIcons'
 import DataTable from '../../components/admin/DataTable'
+import FilterBar, { SearchFilter, SelectFilter } from '../../components/admin/FilterBar'
 import ConfirmDialog from '../../components/common/ConfirmDialog'
 import StateMessage from '../../components/common/StateMessage'
 import Pagination from '../../components/common/Pagination'
 import ProductImage from '../../components/shop/ProductImage'
 import ProduitFormModal from './ProduitFormModal'
-import { useAdminProduits, useToggleProduitStatut } from '../../hooks/useAdminProduits'
+import ProduitInfoModal from './ProduitInfoModal'
+import { useAllProduits } from '../../hooks/useAllProduits'
+import { useToggleProduitStatut } from '../../hooks/useAdminProduits'
+import { useProduitsStock } from '../../hooks/useProduitsStock'
+import { useFilters } from '../../hooks/useFilters'
+import { usePaged } from '../../hooks/usePaged'
 import { useNotification } from '../../hooks/useNotification'
 import { getErrorMessage } from '../../utils/errors'
-import { formatPrix } from '../../utils/format'
+import { matchesSearch } from '../../utils/filters'
+import { STATUT_OPTIONS, VARIANTES_OPTIONS } from '../../utils/filterOptions'
+import { getStockLevel } from '../../utils/stock'
+import { formatPrix, formatResultCount, pluralize } from '../../utils/format'
 import styles from './ProduitsPage.module.css'
 
-function StatutBadge({ statut }) {
-  if (statut === 'ACTIF') return <StatusBadge tone="success">Actif</StatusBadge>
-  if (statut === 'INACTIF') return <StatusBadge tone="neutral">Inactif</StatusBadge>
-  return <StatusBadge tone="warning">{statut}</StatusBadge>
+const EMPTY = []
+const PAGE_SIZE = 15
+const INITIAL_FILTERS = { search: '', categorie: '', statut: '', variantes: '' }
+
+function StockCell({ stock }) {
+  if (!stock || stock.status === 'loading') {
+    return <span className={styles.stockSkeleton} aria-label="Chargement du stock" />
+  }
+
+  if (stock.status === 'error') {
+    return (
+      <span className={styles.stockError} title="Stock indisponible">
+        —
+      </span>
+    )
+  }
+
+  // Pour baser l'état sur le stock disponible : remplacer stock.total par stock.disponible
+  const quantity = stock.total
+  const level = getStockLevel(quantity)
+
+  return (
+    <div className={styles.stock}>
+      <strong>{quantity}</strong>
+      <StatusBadge tone={level.tone}>{level.label}</StatusBadge>
+    </div>
+  )
 }
 
 export default function ProduitsPage() {
@@ -26,16 +63,64 @@ export default function ProduitsPage() {
   const location = useLocation()
   const navigate = useNavigate()
 
-  const [page, setPage] = useState(1)
-  const { data, isPending, isError, isFetching, refetch } = useAdminProduits(page)
+  const { data, isPending, isError, isFetching, refetch } = useAllProduits()
   const statutMutation = useToggleProduitStatut()
 
-  // Le produit ciblé est conservé après la fermeture de la modale :
-  // son contenu ne doit pas changer pendant l'animation de sortie.
+  // Plus récents d'abord, comme la liste du serveur
+  const produits = useMemo(
+    () =>
+      [...(data ?? EMPTY)].sort(
+        (a, b) =>
+          new Date(b.date_creation) - new Date(a.date_creation) || b.id_produit - a.id_produit,
+      ),
+    [data],
+  )
+
+  const { filters, setFilter, reset, hasActive } = useFilters(INITIAL_FILTERS)
+
+  const categorieOptions = useMemo(() => {
+    const byId = new Map()
+    produits.forEach((p) => {
+      if (p.categorie) byId.set(p.categorie.id_categorie, p.categorie.nom_categorie)
+    })
+    return [...byId]
+      .map(([value, label]) => ({ value: String(value), label }))
+      .sort((a, b) => a.label.localeCompare(b.label, 'fr'))
+  }, [produits])
+
+  const filtered = useMemo(
+    () =>
+      produits.filter(
+        (p) =>
+          matchesSearch(filters.search, [p.nom_produit, p.description, p.categorie?.nom_categorie]) &&
+          (!filters.categorie || String(p.id_categorie) === filters.categorie) &&
+          (!filters.statut || p.statut === filters.statut) &&
+          (!filters.variantes ||
+            (filters.variantes === 'avec' ? p.variantes_count > 0 : !(p.variantes_count > 0))),
+      ),
+    [produits, filters],
+  )
+
+  const { page, lastPage, pageItems, setPage } = usePaged(
+    filtered,
+    PAGE_SIZE,
+    JSON.stringify(filters),
+  )
+
+  // Stock des produits de la page affichée uniquement
+  const stocks = useProduitsStock(pageItems.map((p) => p.id_produit))
+  const stockById = useMemo(
+    () => new Map(pageItems.map((p, index) => [p.id_produit, stocks[index]])),
+    [pageItems, stocks],
+  )
+
+  // Le produit ciblé est conservé après la fermeture des modales :
+  // leur contenu ne doit pas changer pendant l'animation de sortie.
   const [formState, setFormState] = useState(() => ({
     open: Boolean(location.state?.openCreate), // arrivée depuis « Ajouter un produit » du tableau de bord
     produit: null,
   }))
+  const [infoState, setInfoState] = useState({ open: false, produit: null })
   const [toggle, setToggle] = useState({ open: false, produit: null })
 
   // Évite de rouvrir le formulaire au rechargement de la page
@@ -48,6 +133,8 @@ export default function ProduitsPage() {
   const openCreate = () => setFormState({ open: true, produit: null })
   const openEdit = (produit) => setFormState({ open: true, produit })
   const closeForm = () => setFormState((state) => ({ ...state, open: false }))
+  const openInfo = (produit) => setInfoState({ open: true, produit })
+  const closeInfo = () => setInfoState((state) => ({ ...state, open: false }))
   const closeToggle = () => setToggle((state) => ({ ...state, open: false }))
 
   async function changeStatut(produit) {
@@ -95,6 +182,8 @@ export default function ProduitsPage() {
           </div>
           <div className={styles.productText}>
             <strong className={styles.name}>{p.nom_produit}</strong>
+            {/* Le contour rouge ne se voit pas avec un lecteur d'écran : on l'annonce */}
+            {p.statut === 'INACTIF' && <span className="sr-only">Produit désactivé</span>}
             {p.description && <span className={styles.description}>{p.description}</span>}
           </div>
         </div>
@@ -113,32 +202,65 @@ export default function ProduitsPage() {
           <StatusBadge tone="warning">Aucune</StatusBadge>
         ),
     },
-    { key: 'statut', header: 'Statut', render: (p) => <StatutBadge statut={p.statut} /> },
+    {
+      key: 'stock',
+      header: 'Stock',
+      render: (p) => <StockCell stock={stockById.get(p.id_produit)} />,
+    },
     {
       key: 'actions',
       header: 'Actions',
-      mobile: 'actions',
       align: 'right',
+      mobile: 'actions',
       render: (p) => (
         <div className={styles.actions}>
+          <Button
+            variant="soft"
+            size="sm"
+            className={styles.iconAction}
+            onClick={() => openInfo(p)}
+            aria-label={`Informations sur ${p.nom_produit}`}
+            title="Informations"
+            leftIcon={<IconInfoCircleFilled size={18} aria-hidden="true" />}
+          >
+            <span className="sr-only">Informations</span>
+          </Button>
           <Button
             as={Link}
             to={`/admin/produits/${p.id_produit}/variantes`}
             variant="soft"
             size="sm"
+            className={styles.iconAction}
+            aria-label={`Variantes de ${p.nom_produit}`}
+            title="Variantes"
+            leftIcon={<IconCategoryFilled size={18} aria-hidden="true" />}
           >
-            Variantes
-          </Button>
-          <Button variant="soft" size="sm" onClick={() => openEdit(p)}>
-            Modifier
+            <span className="sr-only">Variantes</span>
           </Button>
           <Button
             variant="soft"
             size="sm"
+            className={styles.iconAction}
+            onClick={() => openEdit(p)}
+            aria-label={`Modifier ${p.nom_produit}`}
+            title="Modifier"
+            leftIcon={<IconPencilFilled size={18} aria-hidden="true" />}
+          >
+            <span className="sr-only">Modifier</span>
+          </Button>
+          <Button
+            variant="soft"
+            size="sm"
+            className={styles.statusToggle}
             onClick={() => handleToggleClick(p)}
             disabled={statutMutation.isPending}
+            role="switch"
+            aria-checked={p.statut === 'ACTIF'}
+            aria-label={`${p.statut === 'ACTIF' ? 'Désactiver' : 'Activer'} ${p.nom_produit}`}
+            title={p.statut === 'ACTIF' ? 'Désactiver' : 'Activer'}
+            data-active={p.statut === 'ACTIF'}
           >
-            {p.statut === 'ACTIF' ? 'Désactiver' : 'Activer'}
+            <span className="sr-only">{p.statut === 'ACTIF' ? 'Désactiver' : 'Activer'}</span>
           </Button>
         </div>
       ),
@@ -169,7 +291,7 @@ export default function ProduitsPage() {
       )
     }
 
-    if (data.items.length === 0) {
+    if (produits.length === 0) {
       return (
         <StateMessage
           title="Aucun produit pour le moment."
@@ -182,20 +304,65 @@ export default function ProduitsPage() {
 
     return (
       <>
-        <div className={isFetching ? styles.fetching : undefined} aria-busy={isFetching}>
-          <DataTable
-            caption="Liste des produits"
-            columns={columns}
-            rows={data.items}
-            rowKey={(p) => p.id_produit}
+        <FilterBar
+          hasActiveFilters={hasActive}
+          onReset={reset}
+          summary={formatResultCount(filtered.length, produits.length)}
+        >
+          <SearchFilter
+            value={filters.search}
+            onChange={(value) => setFilter('search', value)}
+            placeholder="Nom, description, catégorie…"
           />
-        </div>
-        <Pagination
-          page={page}
-          lastPage={data.pagination.lastPage}
-          onChange={handlePageChange}
-          disabled={isFetching}
-        />
+          <SelectFilter
+            label="Catégorie"
+            placeholder="Toutes les catégories"
+            options={categorieOptions}
+            value={filters.categorie}
+            onChange={(value) => setFilter('categorie', value)}
+          />
+          <SelectFilter
+            label="Statut"
+            placeholder="Tous les statuts"
+            options={STATUT_OPTIONS}
+            value={filters.statut}
+            onChange={(value) => setFilter('statut', value)}
+          />
+          <SelectFilter
+            label="Variantes"
+            placeholder="Toutes"
+            options={VARIANTES_OPTIONS}
+            value={filters.variantes}
+            onChange={(value) => setFilter('variantes', value)}
+          />
+        </FilterBar>
+
+        {filtered.length === 0 ? (
+          <StateMessage
+            title="Aucun produit ne correspond."
+            message="Modifiez ou réinitialisez les filtres."
+            actionLabel="Réinitialiser les filtres"
+            onAction={reset}
+          />
+        ) : (
+          <>
+            <div className={isFetching ? styles.fetching : undefined} aria-busy={isFetching}>
+              <DataTable
+                caption="Liste des produits"
+                columns={columns}
+                rows={pageItems}
+                rowKey={(p) => p.id_produit}
+                rowTone={(p) => (p.statut === 'INACTIF' ? 'danger' : undefined)}
+              />
+            </div>
+            <Pagination
+              page={page}
+              lastPage={lastPage}
+              onChange={handlePageChange}
+              label="Pagination des produits"
+            />
+          </>
+        )}
       </>
     )
   }
@@ -208,7 +375,7 @@ export default function ProduitsPage() {
             <h1 className={styles.title}>Produits</h1>
             <p className={styles.subtitle}>
               {data
-                ? `${data.pagination.total} produit${data.pagination.total > 1 ? 's' : ''} au catalogue`
+                ? `${pluralize(produits.length, 'produit')} au catalogue`
                 : 'Gérez le catalogue de votre boutique.'}
             </p>
           </div>
@@ -221,6 +388,7 @@ export default function ProduitsPage() {
       </section>
 
       <ProduitFormModal isOpen={formState.open} produit={formState.produit} onClose={closeForm} />
+      <ProduitInfoModal isOpen={infoState.open} produit={infoState.produit} onClose={closeInfo} />
 
       <ConfirmDialog
         isOpen={toggle.open}

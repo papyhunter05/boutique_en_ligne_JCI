@@ -18,11 +18,11 @@ class AdminMiddleware
             ], 401);
         }
 
-        // Vérifier si l'utilisateur possède le rôle ADMIN
-        if ($request->user()->role !== 'ADMIN') {
+        // ADMIN et SUPER_ADMIN peuvent accéder aux fonctionnalités administratives
+        if (!in_array($request->user()->role, ['ADMIN', 'SUPER_ADMIN'], true)) {
             return response()->json([
                 'success' => false,
-                'message' => 'Accès interdit. Réservé à l’administrateur.',
+                'message' => 'Accès interdit. Réservé aux administrateurs.',
             ], 403);
         }
 

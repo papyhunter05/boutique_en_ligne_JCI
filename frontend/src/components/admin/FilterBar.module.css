@@ -1,0 +1,27 @@
+.bar {
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  background: var(--color-admin-bg);
+  border-radius: var(--radius-md);
+}
+
+.fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: var(--space-3);
+}
+
+@media (min-width: 900px) {
+  .search { grid-column: span 2; }
+}
+
+.footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.summary { font-size: var(--text-xs); color: var(--color-text-muted); }

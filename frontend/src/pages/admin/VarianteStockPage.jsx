@@ -10,21 +10,34 @@ import {
 } from '../../components/ui/tablerIcons'
 import StatCard from '../../components/admin/StatCard'
 import MouvementsTable from '../../components/admin/MouvementsTable'
+import MouvementFilters from '../../components/admin/MouvementFilters'
 import StateMessage from '../../components/common/StateMessage'
 import Pagination from '../../components/common/Pagination'
 import MouvementFormModal from './MouvementFormModal'
-import { useMouvementsVariante } from '../../hooks/useAdminStock'
-import { formatVariante } from '../../utils/format'
+import { useAllMouvementsVariante } from '../../hooks/useAdminStock'
+import { useMouvementFilters } from '../../hooks/useMouvementFilters'
+import { usePaged } from '../../hooks/usePaged'
+import { formatResultCount, formatVariante } from '../../utils/format'
 import styles from './VarianteStockPage.module.css'
+
+const EMPTY = []
+const PAGE_SIZE = 15
 
 export default function VarianteStockPage() {
   const { idVariante } = useParams()
   const navigate = useNavigate()
 
-  const [page, setPage] = useState(1)
-  const { data, isPending, isError, error, isFetching, refetch } = useMouvementsVariante(
-    idVariante,
-    page,
+  const { data, isPending, isError, error, isFetching, refetch } =
+    useAllMouvementsVariante(idVariante)
+  const items = data?.items ?? EMPTY
+
+  const filterState = useMouvementFilters(items)
+  const { filtered, reset } = filterState
+
+  const { page, lastPage, pageItems, setPage } = usePaged(
+    filtered,
+    PAGE_SIZE,
+    JSON.stringify(filterState.filters),
   )
 
   const [formState, setFormState] = useState({ open: false, mode: 'entree' })
@@ -74,6 +87,57 @@ export default function VarianteStockPage() {
     taille: variante.taille,
     sku: variante.sku,
     stock_disponible: variante.stock_disponible,
+  }
+
+  function renderHistory() {
+    if (isPending) return <span className={styles.skeleton} aria-busy="true" />
+
+    if (items.length === 0) {
+      return (
+        <StateMessage
+          title="Aucun mouvement pour cette variante."
+          message="Les entrées et sorties de stock apparaîtront ici."
+        />
+      )
+    }
+
+    return (
+      <>
+        {data.truncated && (
+          <p className={styles.notice} role="status">
+            Seuls les {items.length} mouvements les plus récents (sur {data.total}) sont chargés
+            et filtrés.
+          </p>
+        )}
+
+        <MouvementFilters
+          state={filterState}
+          searchPlaceholder="Motif, administrateur…"
+          summary={formatResultCount(filtered.length, items.length)}
+        />
+
+        {filtered.length === 0 ? (
+          <StateMessage
+            title="Aucun mouvement ne correspond."
+            message="Modifiez ou réinitialisez les filtres."
+            actionLabel="Réinitialiser les filtres"
+            onAction={reset}
+          />
+        ) : (
+          <>
+            <div className={isFetching ? styles.fetching : undefined} aria-busy={isFetching}>
+              <MouvementsTable rows={pageItems} />
+            </div>
+            <Pagination
+              page={page}
+              lastPage={lastPage}
+              onChange={handlePageChange}
+              label="Pagination de l'historique"
+            />
+          </>
+        )}
+      </>
+    )
   }
 
   return (
@@ -140,27 +204,7 @@ export default function VarianteStockPage() {
 
         <h2 className={styles.sectionTitle}>Historique des mouvements</h2>
 
-        {isPending ? (
-          <span className={styles.skeleton} aria-busy="true" />
-        ) : data.items.length === 0 ? (
-          <StateMessage
-            title="Aucun mouvement pour cette variante."
-            message="Les entrées et sorties de stock apparaîtront ici."
-          />
-        ) : (
-          <>
-            <div className={isFetching ? styles.fetching : undefined} aria-busy={isFetching}>
-              <MouvementsTable rows={data.items} />
-            </div>
-            <Pagination
-              page={page}
-              lastPage={data.pagination.lastPage}
-              onChange={handlePageChange}
-              disabled={isFetching}
-              label="Pagination de l'historique"
-            />
-          </>
-        )}
+        {renderHistory()}
       </section>
 
       {fixedVariante && (

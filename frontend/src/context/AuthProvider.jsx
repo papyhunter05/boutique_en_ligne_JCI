@@ -4,6 +4,7 @@ import { useNotification } from '../hooks/useNotification'
 import { tokenStorage } from '../api/tokenStorage'
 import { setAuthHandlers } from '../api/http'
 import * as authApi from '../api/auth.api'
+import { isStaffRole, isSuperAdminRole } from '../utils/roles'
 
 // Restaure la session à partir du token enregistré.
 // 401 ou 403 : le token ne vaut plus rien, on l'efface.
@@ -107,7 +108,9 @@ export default function AuthProvider({ children }) {
       isLoading,
       sessionError,
       isAuthenticated: Boolean(user),
-      isAdmin: user?.role === 'ADMIN',
+      isAdmin: isStaffRole(user?.role),        // ADMIN ou SUPER_ADMIN
+      isSuperAdmin: isSuperAdminRole(user?.role),
+      role: user?.role ?? null,
       login,
       register,
       logout,

@@ -20,4 +20,4 @@
 .warning { background: var(--color-amber-40);     color: var(--color-gold); }
 .info    { background: var(--color-blue-dark-30); color: var(--color-blue-dark); }
 .neutral { background: var(--color-slate-45);     color: var(--color-slate); }
-.danger  { background: var(--color-red-60);       color: var(--color-danger); }
+.danger  { background: rgba(185, 28, 28, 0.15); color: var(--color-danger); }
